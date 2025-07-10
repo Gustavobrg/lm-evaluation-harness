@@ -1,2 +1,2 @@
-loader,action,sparse_model,hookpoint,feature_index,steering_coefficient
-sae_lens,add,andreuka18/deepseek-r1-distill-llama-8b-lmsys-openthoughts/blocks.19.hook_resid_post,layers.19,46379,2.0
+loader,action,sparse_model,hookpoint,sae_id,feature_index,steering_coefficient
+sae_lens,add,andreuka18/deepseek-r1-distill-llama-8b-lmsys-openthoughts,layers.19,blocks.19.hook_resid_post,46379,2.0
