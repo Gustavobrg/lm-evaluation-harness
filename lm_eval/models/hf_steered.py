@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GenerationConfig:
     """Configuration for text generation parameters."""
-    max_new_tokens: int = 1000
+    max_new_tokens: int = 200
     do_sample: bool = True
     temperature: float = 0.8
     top_p: float = 0.9
