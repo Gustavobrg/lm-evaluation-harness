@@ -116,6 +116,10 @@ class BestOfNSAESteeredModel(HFLM):
             device: Device to use
             **kwargs: Additional arguments for HFLM
         """
+        # Remover argumentos específicos dos kwargs
+        kwargs.pop('feature_indices', None)
+        kwargs.pop('steering_strength', None)
+        
         super().__init__(pretrained=pretrained, device=device, **kwargs)
 
         # Load SAE
