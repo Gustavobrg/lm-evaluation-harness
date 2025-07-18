@@ -320,6 +320,7 @@ class SteeredBestOfNModel(HFLM):
         """
         # Check if we should use Best of N
         logger.info("================ _model_generate ===============")
+        logger.info(len(self.steering_config.feature_indices))
         if len(self.steering_config.feature_indices) > 1:
             # Extract input_ids from args
             input_ids = args[0] if args else kwargs.get('input_ids')
@@ -328,6 +329,7 @@ class SteeredBestOfNModel(HFLM):
                 
                 # Try Best of N generation
                 best_response = self._best_of_n_generate(prompt_text, input_ids, **kwargs)
+                logger.info("================ Best of N Candidates ===============")
                 logger.info(best_response)
                 
                 if best_response is not None:
