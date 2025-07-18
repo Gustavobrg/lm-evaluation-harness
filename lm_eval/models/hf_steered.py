@@ -310,6 +310,7 @@ class SteeredBestOfNModel(HFLM):
         Standard model call interface - PRESERVED.
         This is used for loglikelihood calculations and other inference tasks.
         """
+        logger.info("================ Model Call ===============")
         return super()._model_call(*args, **kwargs)
 
     def _model_generate(self, *args, **kwargs):
@@ -318,6 +319,7 @@ class SteeredBestOfNModel(HFLM):
         This is used for text generation tasks.
         """
         # Check if we should use Best of N
+        logger.info("================ _model_generate ===============")
         if len(self.steering_config.feature_indices) > 1:
             # Extract input_ids from args
             input_ids = args[0] if args else kwargs.get('input_ids')
