@@ -324,6 +324,7 @@ class SteeredBestOfNModel(HFLM):
         if len(self.steering_config.feature_indices) > 1:
             # Extract input_ids from args
             input_ids = args[0] if args else kwargs.get('input_ids')
+            logger.info(input_ids)
             if input_ids is not None:
                 prompt_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
                 
