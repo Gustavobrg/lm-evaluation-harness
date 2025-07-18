@@ -297,8 +297,8 @@ class SteeredBestOfNModel(HFLM):
 
         # Sort by score (descending) and return the best response
         scored_candidates.sort(key=lambda x: x['score'], reverse=True)
-        print("================ Best of N Candidates ===============")
-        print(f"Best of N candidates: {scored_candidates}")
+        logger.info("================ Best of N Candidates ===============")
+        logger.info(f"Best of N candidates: {scored_candidates}")
         return scored_candidates[0]['response']
 
     def forward(self, *args, **kwargs):
