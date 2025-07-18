@@ -321,11 +321,18 @@ class SteeredBestOfNModel(HFLM):
         # Check if we should use Best of N
         logger.info("================ _model_generate ===============")
         logger.info(f"feature indices len: {len(self.steering_config.feature_indices)}")
-        logger.info(f"args: {args}")
-        logger.info(f"kwargs: {kwargs}")
         if len(self.steering_config.feature_indices) > 1:
             # Extract input_ids from args
-            input_ids = args[0] if args else kwargs.get('input_ids')
+            if args:
+                input_ids = args[0]
+            elif 'input_ids' in kwargs:
+                input_ids = kwargs['input_ids']
+            elif 'context' in kwargs:
+                input_ids = kwargs['context']  # Esta é a chave correta!
+            else:
+                logger.error("No input_ids found in args or kwargs")
+                return super()._model_generate(*args, **kwargs)
+            
             logger.info(input_ids)
             if input_ids is not None:
                 prompt_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
