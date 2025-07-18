@@ -299,6 +299,7 @@ class SteeredBestOfNModel(HFLM):
         scored_candidates.sort(key=lambda x: x['score'], reverse=True)
         logger.info("================ Best of N Candidates ===============")
         logger.info(f"Best of N candidates: {scored_candidates}")
+        print(scored_candidates)
         return scored_candidates[0]['response']
 
     def forward(self, *args, **kwargs):
@@ -310,7 +311,6 @@ class SteeredBestOfNModel(HFLM):
         Standard model call interface - PRESERVED.
         This is used for loglikelihood calculations and other inference tasks.
         """
-        logger.info("================ Model Call ===============")
         return super()._model_call(*args, **kwargs)
 
     def _model_generate(self, *args, **kwargs):
@@ -328,6 +328,7 @@ class SteeredBestOfNModel(HFLM):
                 
                 # Try Best of N generation
                 best_response = self._best_of_n_generate(prompt_text, input_ids, **kwargs)
+                logger.info(best_response)
                 
                 if best_response is not None:
                     # Tokenize and return the best response
