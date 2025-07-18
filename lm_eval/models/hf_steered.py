@@ -95,7 +95,7 @@ class SteeredBestOfNModel(HFLM):
         # Configuration
         self.steering_config = steering_config or SteeringConfig(
             feature_indices=[15136, 17456, 46379, 62777],
-            strength=2.0
+            strength=4.0
         )
         self.generation_config = generation_config or GenerationConfig()
         self.clean_responses = clean_responses
@@ -297,6 +297,8 @@ class SteeredBestOfNModel(HFLM):
 
         # Sort by score (descending) and return the best response
         scored_candidates.sort(key=lambda x: x['score'], reverse=True)
+        print("================ Best of N Candidates ===============")
+        print(f"Best of N candidates: {scored_candidates}")
         return scored_candidates[0]['response']
 
     def forward(self, *args, **kwargs):
