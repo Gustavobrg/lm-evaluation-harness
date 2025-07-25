@@ -195,10 +195,10 @@ class SteeredBestOfNModel(HFLM):
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
 
     def _clean_response(self, text: str) -> str:
-        """Clean the response by removing content before </think> tag."""
-        end_tag_index = text.find("</think>")
-        if end_tag_index != -1:
-            return text[end_tag_index + len("</think>"):].lstrip()
+        """Clean the response by removing content before the last 'Q:'."""
+        last_q_index = text.rfind("Q:")
+        if last_q_index != -1:
+            return text[last_q_index + len("Q:") :].lstrip()
         return text
 
     def _score_response(self, prompt: str, response: str) -> float:
@@ -332,21 +332,7 @@ class SteeredBestOfNModel(HFLM):
 
         if context is None or max_length is None:
             raise ValueError("context and max_length must be provided.")
-        
-        from torch.nn.utils.rnn import pad_sequence
 
-        think_token_id = self.tokenizer.convert_tokens_to_ids("<think>")
-
-        # Adiciona o token a cada sequência do batch
-        new_context = [
-            torch.cat([seq, torch.tensor([think_token_id], device=seq.device, dtype=seq.dtype)])
-            for seq in context
-        ]
-
-        # Repad (mantém formato batch: [batch_size, seq_len])
-        context = pad_sequence(new_context, batch_first=True, padding_value=self.tokenizer.pad_token_id)
-
-        attention_mask = (context != self.tokenizer.pad_token_id).long()
 
         # Copiar kwargs para evitar mutação acidental
         generation_kwargs = dict(kwargs)
@@ -355,7 +341,6 @@ class SteeredBestOfNModel(HFLM):
         generation_kwargs.pop("context", None)
         generation_kwargs.pop("stop", None)
         generation_kwargs.pop("max_length", None)
-        generation_kwargs.pop("attention_mask", None)
 
         # Configuração de temperatura/amostragem
         generation_kwargs["temperature"] = generation_kwargs.get("temperature", 0.0)
@@ -382,7 +367,6 @@ class SteeredBestOfNModel(HFLM):
                 with self._apply_steering_hook(feature_idx, self.steering_config.strength):
                     output = self.model.generate(
                         input_ids=context,
-                        attention_mask=attention_mask,
                         max_length=max_length,
                         stopping_criteria=stopping_criteria,
                         pad_token_id=self.tokenizer.pad_token_id,
@@ -394,6 +378,7 @@ class SteeredBestOfNModel(HFLM):
                 if self.clean_responses:
                     response = self._clean_response(response)
                 candidates.append((feature_idx, response))
+                logger.info(f"Generated response for feature {feature_idx}: {response}")
 
             except Exception as e:
                 logger.error(f"Generation failed for feature {feature_idx}: {e}")
