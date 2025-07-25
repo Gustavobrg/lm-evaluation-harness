@@ -356,6 +356,7 @@ class SteeredBestOfNModel(HFLM):
         for feature_idx in self.steering_config.feature_indices:
             try:
                 with self._apply_steering_hook(feature_idx, self.steering_config.strength):
+                    generation_kwargs.pop("max_length", None)
                     output = self.model.generate(
                         input_ids=context,
                         max_length=max_length,
