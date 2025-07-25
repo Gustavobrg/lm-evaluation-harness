@@ -322,26 +322,29 @@ class SteeredBestOfNModel(HFLM):
         while preserving stop_sequence handling and arguments from the base HFLM class.
         """
 
-        # Extrair `context`, `max_length` e `stop` da chamada (como a superclasse faz)
-        context = kwargs['context']
-        max_length = kwargs["max_length"]
-        stop = kwargs["stop"]
+        # Extrair argumentos de geração conforme a HFLM
+        context = kwargs.get("context", args[0] if len(args) > 0 else None)
+        max_length = kwargs.get("max_length", args[1] if len(args) > 1 else None)
+        stop = kwargs.get("stop", args[2] if len(args) > 2 else [])
 
         if context is None or max_length is None:
             raise ValueError("context and max_length must be provided.")
 
-        # Configurar temperatura e amostragem
+        # Copiar kwargs para evitar mutação acidental
         generation_kwargs = dict(kwargs)
-        generation_kwargs["temperature"] = generation_kwargs.get("temperature", 5.0)
-        do_sample = generation_kwargs.get("do_sample", None)
 
-        if generation_kwargs["temperature"] == 0.0 and do_sample is None:
+        # Remover argumentos que vão explicitamente no generate()
+        generation_kwargs.pop("context", None)
+        generation_kwargs.pop("stop", None)
+        generation_kwargs.pop("max_length", None)
+
+        # Configuração de temperatura/amostragem
+        generation_kwargs["temperature"] = generation_kwargs.get("temperature", 0.0)
+        if generation_kwargs["temperature"] == 0.0:
             generation_kwargs["do_sample"] = False
+            generation_kwargs.pop("temperature", None)  # Evita conflito com do_sample=False
 
-        if generation_kwargs["do_sample"] is False and generation_kwargs["temperature"] == 0.0:
-            generation_kwargs.pop("temperature", None)
-
-        # Critério de parada
+        # Critério de parada com múltiplos tokens
         stopping_criteria = stop_sequences_criteria(
             self.tokenizer,
             stop_sequences=stop,
@@ -350,13 +353,11 @@ class SteeredBestOfNModel(HFLM):
         )
 
         prompt_text = self.tokenizer.decode(context[0], skip_special_tokens=True)
-
-        # Best-of-N usando cada feature do SAE
         candidates = []
+
         for feature_idx in self.steering_config.feature_indices:
             try:
                 with self._apply_steering_hook(feature_idx, self.steering_config.strength):
-                    generation_kwargs.pop("max_length", None)
                     output = self.model.generate(
                         input_ids=context,
                         max_length=max_length,
@@ -365,7 +366,6 @@ class SteeredBestOfNModel(HFLM):
                         use_cache=True,
                         **generation_kwargs,
                     )
-
                 response = self.tokenizer.decode(output[0], skip_special_tokens=True)
                 if self.clean_responses:
                     response = self._clean_response(response)
@@ -378,7 +378,7 @@ class SteeredBestOfNModel(HFLM):
             logger.warning("No successful candidates; falling back to default generation.")
             return super()._model_generate(*args, **kwargs)
 
-        # Scoring
+        # Scoring e seleção
         scored = []
         for feature_idx, response in candidates:
             try:
@@ -394,4 +394,5 @@ class SteeredBestOfNModel(HFLM):
             best_response = max(scored, key=lambda x: x['score'])['response']
 
         return self.tokenizer.encode(best_response, return_tensors="pt").to(self.device)
+
 
