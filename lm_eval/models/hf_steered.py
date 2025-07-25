@@ -352,8 +352,10 @@ class SteeredBestOfNModel(HFLM):
             batch_size=context.shape[0],
         )
 
-        prompt_text = self.tokenizer.decode(context[0], skip_special_tokens=True)
+        prompt_text = self.tokenizer.decode(context[0]+"<think>", skip_special_tokens=True)
         candidates = []
+
+        logger.info(f"Context: {context[0]}")
 
         for feature_idx in self.steering_config.feature_indices:
             try:
