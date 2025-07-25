@@ -344,6 +344,10 @@ class SteeredBestOfNModel(HFLM):
             generation_kwargs["do_sample"] = False
             generation_kwargs.pop("temperature", None)  # Evita conflito com do_sample=False
 
+        think_token_id = self.tokenizer.convert_tokens_to_ids("<think>")
+        think_token = torch.tensor([[think_token_id]]).to(context.device)
+        context = torch.cat([context, think_token.expand(context.size(0), -1)], dim=1)
+
         # Critério de parada com múltiplos tokens
         stopping_criteria = stop_sequences_criteria(
             self.tokenizer,
@@ -352,10 +356,10 @@ class SteeredBestOfNModel(HFLM):
             batch_size=context.shape[0],
         )
 
-        prompt_text = self.tokenizer.decode(context[0]+"<think>", skip_special_tokens=True)
+        prompt_text = self.tokenizer.decode(context[0], skip_special_tokens=True)
         candidates = []
 
-        logger.info(f"Context: {context[0]}")
+        logger.info(f"Context: {prompt_text}")
 
         for feature_idx in self.steering_config.feature_indices:
             try:
