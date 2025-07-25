@@ -346,6 +346,8 @@ class SteeredBestOfNModel(HFLM):
         # Repad (mantém formato batch: [batch_size, seq_len])
         context = pad_sequence(new_context, batch_first=True, padding_value=self.tokenizer.pad_token_id)
 
+        attention_mask = (context != self.tokenizer.pad_token_id).long()
+
         # Copiar kwargs para evitar mutação acidental
         generation_kwargs = dict(kwargs)
 
@@ -353,6 +355,7 @@ class SteeredBestOfNModel(HFLM):
         generation_kwargs.pop("context", None)
         generation_kwargs.pop("stop", None)
         generation_kwargs.pop("max_length", None)
+        generation_kwargs.pop("attention_mask", None)
 
         # Configuração de temperatura/amostragem
         generation_kwargs["temperature"] = generation_kwargs.get("temperature", 0.0)
@@ -379,6 +382,7 @@ class SteeredBestOfNModel(HFLM):
                 with self._apply_steering_hook(feature_idx, self.steering_config.strength):
                     output = self.model.generate(
                         input_ids=context,
+                        attention_mask=attention_mask,
                         max_length=max_length,
                         stopping_criteria=stopping_criteria,
                         pad_token_id=self.tokenizer.pad_token_id,
