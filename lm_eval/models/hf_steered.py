@@ -323,16 +323,16 @@ class SteeredBestOfNModel(HFLM):
         """
 
         # Extrair `context`, `max_length` e `stop` da chamada (como a superclasse faz)
-        context = kwargs.get("context", args[0] if len(args) > 0 else None)
-        max_length = kwargs.get("max_length", args[1] if len(args) > 1 else None)
-        stop = kwargs.get("stop", args[2] if len(args) > 2 else [])
+        context = kwargs['context']
+        max_length = kwargs["max_length"]
+        stop = kwargs["stop"]
 
         if context is None or max_length is None:
             raise ValueError("context and max_length must be provided.")
 
         # Configurar temperatura e amostragem
         generation_kwargs = dict(kwargs)
-        generation_kwargs["temperature"] = generation_kwargs.get("temperature", 0.0)
+        generation_kwargs["temperature"] = generation_kwargs.get("temperature", 5.0)
         do_sample = generation_kwargs.get("do_sample", None)
 
         if generation_kwargs["temperature"] == 0.0 and do_sample is None:
