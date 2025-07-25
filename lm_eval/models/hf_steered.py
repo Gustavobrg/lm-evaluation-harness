@@ -329,6 +329,12 @@ class SteeredBestOfNModel(HFLM):
 
         if context is None or max_length is None:
             raise ValueError("context and max_length must be provided.")
+        
+        think_token_id = self.tokenizer.convert_tokens_to_ids("<think>")
+        context = torch.cat(
+            [context, torch.full((context.shape[0], 1), think_token_id, dtype=context.dtype, device=context.device)],
+            dim=1
+        )
 
         # Copiar kwargs para evitar mutação acidental
         generation_kwargs = dict(kwargs)
@@ -358,14 +364,11 @@ class SteeredBestOfNModel(HFLM):
 
         logger.info(f"Context: {prompt_text}")
 
-        prompt = prompt_text + " <think>"
-        input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids.to(context.device)
-
         for feature_idx in self.steering_config.feature_indices:
             try:
                 with self._apply_steering_hook(feature_idx, self.steering_config.strength):
                     output = self.model.generate(
-                        input_ids=input_ids,
+                        input_ids=context,
                         max_length=max_length,
                         stopping_criteria=stopping_criteria,
                         pad_token_id=self.tokenizer.pad_token_id,
