@@ -12,6 +12,9 @@ from dataclasses import dataclass
 
 from lm_eval.api.registry import register_model
 from lm_eval.models.huggingface import HFLM
+from lm_eval.models.utils import (
+    stop_sequences_criteria,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -315,37 +318,79 @@ class SteeredBestOfNModel(HFLM):
 
     def _model_generate(self, *args, **kwargs):
         """
-        Standard model generate interface - PRESERVED with Best of N enhancement.
-        This is used for text generation tasks.
+        Custom _model_generate that does Best-of-N using different SAE features,
+        while preserving stop_sequence handling and arguments from the base HFLM class.
         """
-        # Check if we should use Best of N
-        logger.info("================ _model_generate ===============")
-        logger.info(f"feature indices len: {len(self.steering_config.feature_indices)}")
-        if len(self.steering_config.feature_indices) > 1:
-            # Extract input_ids from args
-            if args:
-                input_ids = args[0]
-            elif 'input_ids' in kwargs:
-                input_ids = kwargs['input_ids']
-            elif 'context' in kwargs:
-                input_ids = kwargs['context']  # Esta é a chave correta!
-            else:
-                logger.error("No input_ids found in args or kwargs")
-                return super()._model_generate(*args, **kwargs)
-            
-            logger.info(input_ids)
-            if input_ids is not None:
-                prompt_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
-                
-                # Try Best of N generation
-                best_response = self._best_of_n_generate(prompt_text, input_ids, **kwargs)
-                logger.info("================ Best of N Candidates ===============")
-                logger.info(best_response)
-                
-                if best_response is not None:
-                    # Tokenize and return the best response
-                    best_output = self.tokenizer.encode(best_response, return_tensors="pt").to(self.device)
-                    return best_output
 
-        # Fallback to standard generation
-        return super()._model_generate(*args, **kwargs)
+        # Extrair `context`, `max_length` e `stop` da chamada (como a superclasse faz)
+        context = kwargs.get("context", args[0] if len(args) > 0 else None)
+        max_length = kwargs.get("max_length", args[1] if len(args) > 1 else None)
+        stop = kwargs.get("stop", args[2] if len(args) > 2 else [])
+
+        if context is None or max_length is None:
+            raise ValueError("context and max_length must be provided.")
+
+        # Configurar temperatura e amostragem
+        generation_kwargs = dict(kwargs)
+        generation_kwargs["temperature"] = generation_kwargs.get("temperature", 0.0)
+        do_sample = generation_kwargs.get("do_sample", None)
+
+        if generation_kwargs["temperature"] == 0.0 and do_sample is None:
+            generation_kwargs["do_sample"] = False
+
+        if generation_kwargs["do_sample"] is False and generation_kwargs["temperature"] == 0.0:
+            generation_kwargs.pop("temperature", None)
+
+        # Critério de parada
+        stopping_criteria = stop_sequences_criteria(
+            self.tokenizer,
+            stop_sequences=stop,
+            initial_decoder_input_length=context.shape[1],
+            batch_size=context.shape[0],
+        )
+
+        prompt_text = self.tokenizer.decode(context[0], skip_special_tokens=True)
+
+        # Best-of-N usando cada feature do SAE
+        candidates = []
+        for feature_idx in self.steering_config.feature_indices:
+            try:
+                with self._apply_steering_hook(feature_idx, self.steering_config.strength):
+                    output = self.model.generate(
+                        input_ids=context,
+                        max_length=max_length,
+                        stopping_criteria=stopping_criteria,
+                        pad_token_id=self.tokenizer.pad_token_id,
+                        use_cache=True,
+                        **generation_kwargs,
+                    )
+
+                response = self.tokenizer.decode(output[0], skip_special_tokens=True)
+                if self.clean_responses:
+                    response = self._clean_response(response)
+                candidates.append((feature_idx, response))
+
+            except Exception as e:
+                logger.error(f"Generation failed for feature {feature_idx}: {e}")
+
+        if not candidates:
+            logger.warning("No successful candidates; falling back to default generation.")
+            return super()._model_generate(*args, **kwargs)
+
+        # Scoring
+        scored = []
+        for feature_idx, response in candidates:
+            try:
+                score = self._score_response(prompt_text, response)
+                scored.append({'response': response, 'score': score})
+            except Exception as e:
+                logger.error(f"Scoring failed for feature {feature_idx}: {e}")
+
+        if not scored:
+            logger.warning("All scoring failed; returning first candidate.")
+            best_response = candidates[0][1]
+        else:
+            best_response = max(scored, key=lambda x: x['score'])['response']
+
+        return self.tokenizer.encode(best_response, return_tensors="pt").to(self.device)
+
