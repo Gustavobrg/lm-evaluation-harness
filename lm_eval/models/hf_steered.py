@@ -31,7 +31,7 @@ class GenerationConfig:
 class SteeringConfig:
     """Configuration for SAE feature steering."""
     feature_indices: List[int]
-    strength: float = 2.0
+    strength: float = 4.0
     hook_layer: Optional[int] = None
 
 @contextmanager
@@ -80,7 +80,7 @@ class SteeredBestOfNModel(HFLM):
         device: Optional[str] = None,
         steering_config: Optional[SteeringConfig] = None,
         generation_config: Optional[GenerationConfig] = None,
-        clean_responses: bool = True,
+        clean_responses: bool = False,
         scoring_method: str = "reward_model",
         **kwargs,
     ):
@@ -195,10 +195,10 @@ class SteeredBestOfNModel(HFLM):
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
 
     def _clean_response(self, text: str) -> str:
-        """Clean the response by removing content before the last 'Q:'."""
-        last_q_index = text.rfind("Q:")
-        if last_q_index != -1:
-            return text[last_q_index + len("Q:") :].lstrip()
+        """Clean the response by removing content before </think> tag."""
+        end_tag_index = text.find("</think>")
+        if end_tag_index != -1:
+            return text[end_tag_index + len("</think>"):].lstrip()
         return text
 
     def _score_response(self, prompt: str, response: str) -> float:
@@ -343,7 +343,7 @@ class SteeredBestOfNModel(HFLM):
         generation_kwargs.pop("max_length", None)
 
         # Configuração de temperatura/amostragem
-        generation_kwargs["temperature"] = generation_kwargs.get("temperature", 0.0)
+        generation_kwargs["temperature"] = generation_kwargs.get("temperature", 0.5)
         if generation_kwargs["temperature"] == 0.0:
             generation_kwargs["do_sample"] = False
             generation_kwargs.pop("temperature", None)  # Evita conflito com do_sample=False
@@ -374,9 +374,11 @@ class SteeredBestOfNModel(HFLM):
                         **generation_kwargs,
                     )
                 response = self.tokenizer.decode(output[0], skip_special_tokens=True)
+                
                 if self.clean_responses:
                     response = self._clean_response(response)
                 candidates.append((feature_idx, response))
+
                 logger.info(f"Generated response for feature {feature_idx}: {response}")
 
             except Exception as e:
