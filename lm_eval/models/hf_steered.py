@@ -374,7 +374,6 @@ class SteeredBestOfNModel(HFLM):
                         **generation_kwargs,
                     )
                 response = self.tokenizer.decode(output[0], skip_special_tokens=True)
-                logger.info(f"Generated response for feature {feature_idx}: {response}")
                 if self.clean_responses:
                     response = self._clean_response(response)
                 candidates.append((feature_idx, response))
