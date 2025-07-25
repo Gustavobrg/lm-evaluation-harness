@@ -330,11 +330,18 @@ class SteeredBestOfNModel(HFLM):
         if context is None or max_length is None:
             raise ValueError("context and max_length must be provided.")
         
+        from torch.nn.utils.rnn import pad_sequence
+
         think_token_id = self.tokenizer.convert_tokens_to_ids("<think>")
-        context = torch.cat(
-            [context, torch.full((context.shape[0], 1), think_token_id, dtype=context.dtype, device=context.device)],
-            dim=1
-        )
+
+        # Adiciona o token a cada sequência do batch
+        new_context = [
+            torch.cat([seq, torch.tensor([think_token_id], device=seq.device, dtype=seq.dtype)])
+            for seq in context
+        ]
+
+        # Repad (mantém formato batch: [batch_size, seq_len])
+        context = pad_sequence(new_context, batch_first=True, padding_value=self.tokenizer.pad_token_id)
 
         # Copiar kwargs para evitar mutação acidental
         generation_kwargs = dict(kwargs)
