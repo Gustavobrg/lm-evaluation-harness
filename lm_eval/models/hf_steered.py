@@ -327,6 +327,9 @@ class SteeredBestOfNModel(HFLM):
         max_length = kwargs.get("max_length", args[1] if len(args) > 1 else None)
         stop = kwargs.get("stop", args[2] if len(args) > 2 else [])
 
+        logger.info(f"context shape: {context.shape}")
+
+
         if context is None or max_length is None:
             raise ValueError("context and max_length must be provided.")
         
