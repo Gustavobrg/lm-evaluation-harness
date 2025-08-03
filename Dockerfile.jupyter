@@ -1,0 +1,37 @@
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Instala dependências do sistema e Python 3.11
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    gcc \
+    g++ \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Define python3.11 como padrão
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+# Define diretório de trabalho
+WORKDIR /app
+
+# Atualiza pip e ferramentas de build
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copia o código local para dentro do container (pode ignorar se você for montar via -v)
+COPY . /app
+
+# Instala suas dependências
+RUN pip install -e . && \
+    pip install transformers sae_lens sae-dashboard jupyter
+
+# Exponha a porta padrão do Jupyter
+EXPOSE 8888
+
+# Comando para iniciar o Jupyter Notebook
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8899", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
