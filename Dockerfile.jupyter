@@ -34,5 +34,5 @@ RUN pip install -e . && \
 EXPOSE 8897
 
 # Comando para iniciar o Jupyter Notebook
-CMD ["jupyter", "lab", "--ip=127.0.0.1", "--port=8897", "--allow-root"]
+CMD jupyter lab --ip=127.0.0.1 --port=8897 --allow-root --ServerApp.token='' --ServerApp.password=''
 
