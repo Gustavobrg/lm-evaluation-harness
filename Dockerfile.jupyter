@@ -28,10 +28,10 @@ COPY . /app
 
 # Instala suas dependências
 RUN pip install -e . && \
-    pip install transformers sae_lens sae-dashboard jupyter
+    pip install transformers sae_lens sae-dashboard jupyterlab
 
 # Exponha a porta padrão do Jupyter
-EXPOSE 8888
+EXPOSE 8899
 
 # Comando para iniciar o Jupyter Notebook
 CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8899", "--allow-root", "--ServerApp.token=", "--ServerApp.password="]
