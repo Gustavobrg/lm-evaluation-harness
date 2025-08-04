@@ -268,7 +268,7 @@ class SteeredModel(HFLM):
 
         scores = []
         for decoded in decoded_results:
-            score = self._score_with_reward_model(prompt_text, decoded)
+            score = self._score_with_log_likelihood(prompt_text, decoded)
             scores.append(score)
         best_index = scores.index(max(scores))
     
@@ -342,3 +342,21 @@ class SteeredModel(HFLM):
                 raise ValueError(f"Unexpected logits shape: {logits.shape}")
 
             return score
+    
+    def _score_with_log_likelihood(self, prompt: str, response: str) -> float:
+        """Score a response using log likelihood."""
+        full_text = prompt + response
+        input_ids = self.tokenizer.encode(full_text, return_tensors="pt").to(self.device)
+        
+        with torch.no_grad():
+            outputs = self.model(input_ids)
+            logits = outputs.logits
+            
+            log_probs = torch.log_softmax(logits, dim=-1)
+            
+            prompt_length = len(self.tokenizer.encode(prompt))
+            response_log_probs = log_probs[0, prompt_length-1:-1, :]
+            response_tokens = input_ids[0, prompt_length:]
+            
+            token_log_probs = torch.gather(response_log_probs, 1, response_tokens.unsqueeze(1))
+            return -token_log_probs.mean().item()
