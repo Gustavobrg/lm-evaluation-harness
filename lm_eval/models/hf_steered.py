@@ -338,7 +338,7 @@ class SteeredModel(HFLM):
             if logits.shape[-1] == 1:
                 score = logits.item()
             elif logits.shape[-1] == 2:
-                score = logits[:, 1].item()
+                score = logits.mean().item()
             else:
                 raise ValueError(f"Unexpected logits shape: {logits.shape}")
 
