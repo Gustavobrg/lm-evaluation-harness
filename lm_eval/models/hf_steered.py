@@ -268,7 +268,7 @@ class SteeredModel(HFLM):
 
         scores = []
         for decoded in decoded_results:
-            score = self._score_with_log_likelihood(prompt_text, decoded)
+            score = self._score_with_reward_model(decoded)
             scores.append(score)
         best_index = scores.index(max(scores))
     
@@ -320,9 +320,9 @@ class SteeredModel(HFLM):
                 return i
         return 0  # fallback se não identificar
 
-    def _score_with_reward_model(self, prompt: str, response: str) -> float:
+    def _score_with_reward_model(self, prompt: str) -> float:
         """Score a response using the reward model."""
-        full_input = f"Prompt: {prompt}\nRespomse: {response}"
+        full_input = f"{prompt}"
 
         with torch.inference_mode():
             reward_inputs = self.reward_tokenizer(
