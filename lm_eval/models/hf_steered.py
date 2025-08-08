@@ -337,7 +337,7 @@ class SteeredModel(HFLM):
 
             logits = self.reward_model(**reward_inputs).logits
             print(f"Logits shape: {logits}")
-            weighted_logits = torch.tensor([-1.0, 1.0]) * logits.squeeze()
+            weighted_logits = torch.tensor([-1.0, 1.0], device=logits.device) * logits.squeeze()
 
             score = weighted_logits.mean().item()
 
