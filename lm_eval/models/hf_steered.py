@@ -272,7 +272,7 @@ class SteeredModel(HFLM):
             score = self._score_with_reward_model(decoded)
             print(f"Score: {score:.4f}")
             scores.append(score)
-        best_index = scores.index(max(scores))
+        best_index = scores.index(min(scores))
         print(f"Best decoded (score {scores[best_index]:.4f}): {decoded_results[best_index]}")
     
         return results[best_index]
