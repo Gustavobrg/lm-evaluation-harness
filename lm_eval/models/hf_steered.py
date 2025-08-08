@@ -268,9 +268,9 @@ class SteeredModel(HFLM):
 
         scores = []
         for decoded in decoded_results:
-            print(f"Scoring decoded: {decoded}")
+            #print(f"Scoring decoded: {decoded}")
             score = self._score_with_reward_model(decoded)
-            print(f"Score: {score:.4f}")
+            #print(f"Score: {score:.4f}")
             scores.append(score)
         best_index = scores.index(max(scores))
         print(f"Best decoded (score {scores[best_index]:.4f}): {decoded_results[best_index]}")
@@ -336,7 +336,7 @@ class SteeredModel(HFLM):
             ).to(self.device)
 
             logits = self.reward_model(**reward_inputs).logits.squeeze()
-            print(f"Logits shape: {logits}")
+            #print(f"Logits shape: {logits}")
 
             score = (logits[1] - logits[0]).item()
 
