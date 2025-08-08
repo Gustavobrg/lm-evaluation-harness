@@ -335,9 +335,9 @@ class SteeredModel(HFLM):
                 padding=True
             ).to(self.device)
 
-            logits = self.reward_model(**reward_inputs).logits
+            logits = self.reward_model(**reward_inputs).logits.squeeze()
             print(f"Logits shape: {logits}")
-            
+
             score = (logits[1] - logits[0]).item()
 
             return score
