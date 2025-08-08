@@ -337,13 +337,9 @@ class SteeredModel(HFLM):
 
             logits = self.reward_model(**reward_inputs).logits
             print(f"Logits shape: {logits}")
+            weighted_logits = torch.tensor([-1.0, 1.0]) * logits.squeeze()
 
-            if logits.shape[-1] == 1:
-                score = logits.item()
-            elif logits.shape[-1] == 2:
-                score = logits[:, 0].item()
-            else:
-                raise ValueError(f"Unexpected logits shape: {logits.shape}")
+            score = weighted_logits.mean().item()
 
             return score
     
