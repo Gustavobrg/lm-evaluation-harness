@@ -336,11 +336,12 @@ class SteeredModel(HFLM):
             ).to(self.device)
 
             logits = self.reward_model(**reward_inputs).logits
+            print(f"Logits shape: {logits}")
 
             if logits.shape[-1] == 1:
                 score = logits.item()
             elif logits.shape[-1] == 2:
-                score = logits.mean().item()
+                score = logits[:, 0].item()
             else:
                 raise ValueError(f"Unexpected logits shape: {logits.shape}")
 
